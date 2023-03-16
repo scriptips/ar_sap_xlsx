@@ -7,7 +7,7 @@ Purpose
   the Sharepoint, and sent to the Business Users via email notifications  
   depending from the settings made by a user in the Command Line Interface.  
 
-Logic
+Functionality
 -
 - The script looks for the last version of the Accounts Receivables  
   report in the folder that is synced with the Sharepoint.  

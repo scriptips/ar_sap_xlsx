@@ -658,6 +658,11 @@ def compile_ar_fullrep(ar_fullrep_tmp_path_arg, ar_data_tmp_arg, old_ar_data_tmp
     tgt_wb.sheets['Customer Line Items (2)'].api.Visible = False
     tgt_wb.sheets['Qdl'].api.Visible = False
 
+    # Refresh all pivot tables in the workbook
+    for sheet in tgt_wb.sheets:
+        for pt in sheet.api.PivotTables():
+            pt.PivotCache().Refresh()
+
     tgt_wb.sheets['Customer Line Items'].select()  # navigate to the front sheet once everything is done
     xw.Range('N1:N1').select()   # navigate to the front sheet once everything is done
 

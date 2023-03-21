@@ -35,7 +35,7 @@ my_entities_ = [[ent_abrevs[0], ent_codes[0], test_sync_folders[0], test_rec, te
 start_user_alert = "\nFor the script to run properly, BEFORE CONTINUING, ensure the following: ...\n\n\
                     -  SAP is set to the starting screen, and only a single SAP session is-on\n\
                     -  Close all MS Excel workbooks;\n\
-                    -  Check that country target folders contain ONLY A SINGLE version of the AR file.\n\n\n"
+                    -  Check that sync folders contain Only a Aingle version of the Report file.\n\n\n"
 
 cstr_colmns = ['Customer Name', 'Account']
 

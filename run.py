@@ -19,12 +19,12 @@ def main():
     (select_frontlines_fdefault,), (set_now_date_fdefault,), (set_comparison_date_fdefault,), (set_overdue_days_fdefault,), (send_email_fdefault,), = func_defaults
 
     apply_defaults =\
-        input(f'Press Enter to apply defaults, "Space + Enter" to customize or "e + Enter" just to send the notification emails..\n\
+        input(f'Press [Enter] to apply defaults, [Space + Enter] to customize or [e + Enter] just to send the notification emails..\n\n\
                   Entity: {select_frontlines_fdefault},\n\
                     Date: {set_now_date_fdefault},\n\
                Hist.Date: {set_comparison_date_fdefault},\n\
               Overd.days: {set_overdue_days_fdefault},\n\
-                  Emails: {send_email_fdefault}\n')
+                  Emails: {send_email_fdefault}\n\n\n')
 
     if apply_defaults == '':
         # user input variables initiated.
@@ -47,16 +47,13 @@ def main():
         # user input variables initiated.Notice comma in frontline_inputs, =..., that's for unpacking.
         frontline_inputs =\
               select_frontlines(input(\
-             f'\nEnter company codes (e.g. "bal", "koe", "kla" or "kli", or default "bal", press Enter to continue.. '))
-        print()
+             f'\nEnter company codes (e.g. "bal", "koe", "kla" or "kli", or default "bal", press Enter to continue.. \n'))
         now_date =\
               set_now_date(input(\
-             'Key-in current date "ddmmyy", or press Enter....'))
-        print()
+             'Key-in current date "ddmmyy", or press Enter....\n'))
         hist_date =\
               set_comparison_date(\
-             input('Key-in historic date "ddmmyy", or press Enter....'))
-        print()
+             input('Key-in historic date "ddmmyy", or press Enter....\n'))
         overd_days = set_overdue_days()
         mail_notif_input = input('\nSend email notificatoins [yes/no] ?... ') 
 

@@ -192,10 +192,7 @@ def close_sap_excel_file(file_path):
     while times <= 30:
         try:
             excel = win32com.client.GetObject(None, "Excel.Application")
-            for workbook in excel.Workbooks:
-                if workbook.FullName == file_path:
-                    workbook.Close(SaveChanges=True)
-                    break
+            excel.Workbooks.Close()
             excel.Quit()
             break
         except pywintypes.com_error as e:

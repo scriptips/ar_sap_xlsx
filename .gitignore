@@ -1,3 +1,5 @@
 config.json
 errors/
 testing/
+__pycache__/
+```

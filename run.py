@@ -7,11 +7,13 @@ from const import err_log_file_path, my_entities, start_user_alert
 from sap import process_the_files
 from utils import (prompt_continue, return_list_of_frontl_props,
                    select_frontlines, send_email, set_comparison_date,
-                   set_now_date, set_overdue_days, setup_logging)
+                   set_now_date, set_overdue_days, setup_logging, connect_to_sap)
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 def main():
+
+    connect_to_sap()
     # Terminal alert  before the report runs.
     print(start_user_alert)
 

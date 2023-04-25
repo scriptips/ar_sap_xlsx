@@ -17,6 +17,7 @@ import pandas as pd
 import pywintypes
 import win32com.client
 from halo import Halo
+import pythoncom
 
 
 class PdExcel:
@@ -292,3 +293,22 @@ def setup_logging(logfile_path) -> logging.Logger:
     
     return logger
     
+def connect_to_sap() -> win32com.client.GetObject:
+    '''
+    - Connect to SAP and return the session object.\n
+    - Catch the exception if SAP is not running.\n
+    - Exit after 5 failed attempts.\n
+    '''
+    times = 0
+    while times <= 4:
+        try:
+            session = win32com.client.GetObject("SAPGUI").GetScriptingEngine.Children(0).Children(0)
+            print('INFO: >>> Connected to SAP.')
+            return session
+        except pythoncom.com_error as e:
+            input(f'WARNING: >>> First, Connect to SAP and Pess Enter to retry.')
+            times += 1
+            if times == 5:
+                print(f'ERROR: >>> Exiting after too many failed attempts. {e}')
+                time.sleep(3)
+                sys.exit(1)

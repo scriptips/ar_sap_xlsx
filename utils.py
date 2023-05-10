@@ -16,7 +16,6 @@ import openpyxl as opx
 import pandas as pd
 import pywintypes
 import win32com.client
-from halo import Halo
 import pythoncom
 
 
@@ -218,20 +217,6 @@ def rename_ar_fullrep_tmp(rename_ar_fullrep_tmp_arg, new_name_ar_fullrep_tmp_arg
      renamed = os.rename(rename_ar_fullrep_tmp_arg, new_name_ar_fullrep_tmp_arg)
      return renamed
 
-def spinner(func: Callable)-> Callable:
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        with Halo(spinner='dots') as spinner:
-            spinner.start()
-            try:
-                result = func(*args, **kwargs)
-            except Exception as e:
-                spinner.fail()
-                raise e
-            spinner.succeed()
-        return result
-    return wrapper
-
 def prompt_continue()-> bool:
     '''
     Function prompts user to unput Space to continue the Script execution\n
@@ -293,22 +278,20 @@ def setup_logging(logfile_path) -> logging.Logger:
     
     return logger
     
-def connect_to_sap() -> win32com.client.GetObject:
-    '''
-    - Connect to SAP and return the session object.\n
-    - Catch the exception if SAP is not running.\n
-    - Exit after 5 failed attempts.\n
-    '''
-    times = 0
-    while times <= 4:
-        try:
-            session = win32com.client.GetObject("SAPGUI").GetScriptingEngine.Children(0).Children(0)
-            print('INFO: >>> Connected to SAP.')
-            return session
-        except pythoncom.com_error as e:
-            input(f'WARNING: >>> First, Connect to SAP and Pess Enter to retry.')
-            times += 1
-            if times == 5:
-                print(f'ERROR: >>> Exiting after too many failed attempts. {e}')
-                time.sleep(3)
-                sys.exit(1)
+def sap_connection_required(func):
+    def wrapper(*args, **kwargs):
+        times = 0
+        while times <= 4:
+            try:
+                session = win32com.client.GetObject("SAPGUI").GetScriptingEngine.Children(0).Children(0)
+                return func(session, *args, **kwargs)
+            except pythoncom.com_error:
+                time_str=datetime.now().strftime('%H:%M:%S')
+                input(f'WARNING: {time_str} >>> Connect to SAP and Press Enter to retry.')
+                time.sleep(2)
+                times += 1
+                if times == 5:
+                    print(f'ERROR: {time_str} >>> Exiting after too many failed attempts.')
+                    time.sleep(3)
+                    sys.exit(1)
+    return wrapper

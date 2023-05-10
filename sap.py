@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import psutil
-import win32com
 import xlsxwriter
 import xlwings as xw
 from const import (ar_data_tmp, arch_dir, bill_doc_list_tmp, bridge_data_tmp,
@@ -22,16 +21,16 @@ from openpyxl.utils import column_index_from_string
 from plotly import graph_objects as go
 from utils import (PdExcel, clear_temp, close_sap_excel_file, copy_file,
                    format_bill_docs_in_df, move_file, rename_ar_fullrep_tmp,
-                   return_list_of_frontl_props, send_email, spinner, time_it)
+                   return_list_of_frontl_props, send_email, sap_connection_required)
 
-
-def prep_sap_qdl_file(fl_code_arg, temp_path_parent_arg, temp_path_name_arg):
+@sap_connection_required
+def prep_sap_qdl_file(session, fl_code_arg, temp_path_parent_arg, temp_path_name_arg):
     """
     SAP may not always recognize the Path object from the pathlib library.
     session.findById("wnd[1]/usr/ctxtDY_PATH").text = str(temp_path_parent_arg)
     prep_qdl(qdl_tmp.parent, qdl_tmp.name)
     """
-    session = win32com.client.GetObject("SAPGUI").GetScriptingEngine.Children(0).Children(0)
+    # session = win32com.client.GetObject("SAPGUI").GetScriptingEngine.Children(0).Children(0)
     session.findById("wnd[0]").resizeWorkingPane(354, 42, False)
     session.findById("wnd[0]").maximize()
     session.findById("wnd[0]/tbar[0]/okcd").text = "ZV_QUERY_DL"
@@ -56,8 +55,9 @@ def prep_sap_qdl_file(fl_code_arg, temp_path_parent_arg, temp_path_name_arg):
     session.findById("wnd[0]").sendVKey(0)
     close_sap_excel_file(Path(temp_path_parent_arg, temp_path_name_arg))
 
-def prep_sap_cust_mast_data_file(fl_code_arg, temp_path_parent_arg, temp_path_name_arg):
-    session = win32com.client.GetObject("SAPGUI").GetScriptingEngine.Children(0).Children(0)
+@sap_connection_required
+def prep_sap_cust_mast_data_file(session, fl_code_arg, temp_path_parent_arg, temp_path_name_arg):
+    # session = win32com.client.GetObject("SAPGUI").GetScriptingEngine.Children(0).Children(0)
     session.findById("wnd[0]").resizeWorkingPane(354, 42, False)
     session.findById("wnd[0]").maximize()
     session.findById("wnd[0]/tbar[0]/okcd").text = "/nsqvi"
@@ -106,13 +106,14 @@ def prep_sap_cust_mast_data_file(fl_code_arg, temp_path_parent_arg, temp_path_na
     session.findById("wnd[0]").sendVKey(0)
     close_sap_excel_file(Path(temp_path_parent_arg, temp_path_name_arg))
 
-def prep_sap_cust_line_items_file(fl_code_arg, temp_path_parent_arg, temp_path_name_arg, set_date_arg):
+@sap_connection_required
+def prep_sap_cust_line_items_file(session, fl_code_arg, temp_path_parent_arg, temp_path_name_arg, set_date_arg):
     """
     Prepares Customer Line item report from SAP by using tcode FBL5N.
     It is separated from pd df part because it could be wanted as a standalone SAP FBL5N excel export.
     Excel file later closed with the uttil func 'close_sap_excel_file()'.
     """
-    session = win32com.client.GetObject("SAPGUI").GetScriptingEngine.Children(0).Children(0)
+    # session = win32com.client.GetObject("SAPGUI").GetScriptingEngine.Children(0).Children(0)
     session.findById("wnd[0]").resizeWorkingPane(354, 42, False)
     session.findById("wnd[0]").maximize()
     session.findById("wnd[0]/usr/cntlIMAGE_CONTAINER/shellcont/shell/shellcont[0]/shell").doubleClickNode("F00010")
@@ -133,13 +134,14 @@ def prep_sap_cust_line_items_file(fl_code_arg, temp_path_parent_arg, temp_path_n
     session.findById("wnd[0]").sendVKey(0)
     close_sap_excel_file(Path(temp_path_parent_arg, temp_path_name_arg))
 
-def prep_sap_bill_so_tab(cust_line_items_arg, temp_path_parent_arg, temp_path_name_arg):
+@sap_connection_required
+def prep_sap_bill_so_tab(session, cust_line_items_arg, temp_path_parent_arg, temp_path_name_arg):
     '''
     Copies billing document numbers from the earlier saved Customer Line Item report, formats the df,\n
     and uses as selections in the SAP SQVI table query BAL_VBRP and creates a matching table of blld/so numbers.\n
     It is later saved in the xlsx file: "bill_doc_list_tmp dd-mm-yyyy (hh.mm.ss).xlsx".
     '''
-    session = win32com.client.GetObject("SAPGUI").GetScriptingEngine.Children(0).Children(0)
+    # session = win32com.client.GetObject("SAPGUI").GetScriptingEngine.Children(0).Children(0)
 
     bill_doc_df = pd.read_excel(cust_line_items_arg)
     bill_doc_df = bill_doc_df[['Reference']]  # Delete all but one column? Use [[..]] - and other columns of the df will be garbage collected.
@@ -679,8 +681,6 @@ def compile_ar_fullrep(ar_fullrep_tmp_path_arg, ar_data_tmp_arg, old_ar_data_tmp
 
     rename_ar_fullrep_tmp(ar_fullrep_tmp_path_arg, new_fullrep_tmp_arg)
 
-@time_it
-@spinner  
 def process_the_files(frontline_input_args, now_date_arg, hist_date_arg, overd_days_arg, send_email_arg):
     
     clear_temp(temp_dir)

@@ -281,14 +281,13 @@ def setup_logging(logfile_path) -> logging.Logger:
 def sap_connection_required(func):
     def wrapper(*args, **kwargs):
         times = 0
-        while times <= 4:
+        while times <= 10:
             try:
                 session = win32com.client.GetObject("SAPGUI").GetScriptingEngine.Children(0).Children(0)
                 return func(session, *args, **kwargs)
             except pythoncom.com_error:
                 time_str=datetime.now().strftime('%H:%M:%S')
                 input(f'WARNING: {time_str} >>> Connect to SAP and Press Enter to retry.')
-                time.sleep(2)
                 times += 1
                 if times == 5:
                     print(f'ERROR: {time_str} >>> Exiting after too many failed attempts.')

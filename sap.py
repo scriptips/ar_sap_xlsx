@@ -228,8 +228,10 @@ def prep_df_and_wrt_ar_file(qdl_tmp_arg, now_date_arg, cust_line_items_arg, cust
     bd_so_temp_df = pd.read_excel(bill_doc_list_arg, converters = {'Bill.Doc.':str,'Sales Doc.':str})
     qdl_tmp_df = pd.read_excel(qdl_tmp_arg, converters={'SO Doc N°':str})
 
-
     customers_df_dict = dict(zip(customers_df.iloc[:, 0], customers_df.iloc[:, 1]))
+
+    # imported custom util func from the utils module
+    format_bill_docs_in_df(line_items_df)
 
     # reindexing the lines in the df
     line_items_df = line_items_df.reindex(columns=header_list)  
@@ -328,6 +330,7 @@ def prep_df_and_wrt_ar_file(qdl_tmp_arg, now_date_arg, cust_line_items_arg, cust
     # Transfers Sales Persons names from the old AR file to the new (tmp).
     spers_name_dict = dict(zip(qdl_tmp_df.iloc[:, 2], qdl_tmp_df.iloc[:, 10]))
     spers_name_to_main = dict(zip(bd_so_temp_df.iloc[:, 0], bd_so_temp_df.iloc[:, 1]))
+
     line_items_df['Sales Person'] = line_items_df['Reference']
     line_items_df['Sales Person'] = line_items_df['Sales Person'].map(spers_name_to_main)
     line_items_df['Sales Person'] = line_items_df['Sales Person'].map(spers_name_dict)
@@ -341,9 +344,6 @@ def prep_df_and_wrt_ar_file(qdl_tmp_arg, now_date_arg, cust_line_items_arg, cust
                 line_items_df['Sales Person'].astype(str).replace('nan', np.nan, regex=True)]
     line_items_df['Sales Person'] = np.select(conditions, values)
     line_items_df.drop('Sales_Person_prev', inplace=True, axis=1)
-
-    # imported custom utli func from the utlis module
-    format_bill_docs_in_df(line_items_df)
 
     so_to_main = dict(zip(bd_so_temp_df.iloc[:, 0], bd_so_temp_df.iloc[:, 1]))
     line_items_df['Sales Order'] = line_items_df['Reference']

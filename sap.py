@@ -21,7 +21,7 @@ from openpyxl.utils import column_index_from_string
 from plotly import graph_objects as go
 from utils import (PdExcel, clear_temp, close_sap_excel_file, copy_file,
                    format_bill_docs_in_df, move_file, rename_ar_fullrep_tmp,
-                   return_list_of_frontl_props, send_email, sap_connection_required)
+                   return_list_of_frontl_props, send_email, sap_connection_required, time_it)
 
 @sap_connection_required
 def prep_sap_qdl_file(session, fl_code_arg, temp_path_parent_arg, temp_path_name_arg):
@@ -539,7 +539,7 @@ def prep_stack_sh_file(ar_data_tmp_arg, bubble_2d_tmp_arg, bubble_3d_tmp_arg, st
             for col_num, col_data in enumerate(stack_df.columns):
                 worksheet.set_column(col_num + column_index_from_string('Y')-2, col_num + column_index_from_string('Y')-2, len(col_data) + 2)
 
-def prep_change_sh_file(bridge_data_tmp_arg, wtf_chart_tmp_arg, ar_data_tmp_arg, old_ar_data_tmp_arg, now_date_arg, hist_date_arg, overd_days_arg):
+def prep_change_sh_file(bridge_data_tmp_arg, ar_data_tmp_arg, old_ar_data_tmp_arg, now_date_arg, hist_date_arg, overd_days_arg):
     df1 = pd.read_excel(old_ar_data_tmp_arg, sheet_name='Customer Line Items', skiprows = 1)
     if overd_days_arg == '':
         pass
@@ -551,15 +551,15 @@ def prep_change_sh_file(bridge_data_tmp_arg, wtf_chart_tmp_arg, ar_data_tmp_arg,
     else: df2 = df2.loc[df2['Overdue Days'] > int(overd_days_arg)]
     # df3 = df1.append(df2) 
     df3 = pd.concat([df1, df2])
-    df4 = pd.pivot_table(data=df3, index=['ic?', 'GL Account Description', 'Customer Name'], values='Amount in local currency', columns= ['Business Area1'], margins=True, aggfunc=np.sum, fill_value=0)
+    df4 = pd.pivot_table(data=df3, index=['ic?', 'GL Account Description', 'Customer Name'], values='Amount in local currency', columns= ['Business Area1'], margins=True, aggfunc="sum", fill_value=0)
     df4 = df4.round(decimals=2).astype(object)
     df4 = df4[df4['All'] != 0]  # pivots ģenerē summāro kolonnu un pēc tās var nomest nulles ar šo koda rindu...
     df4 = df4.reset_index()
-    df5 = pd.pivot_table(data=df3, index=['Business Area1'], values='Amount in local currency', margins=True, aggfunc=np.sum, fill_value=0)
+    df5 = pd.pivot_table(data=df3, index=['Business Area1'], values='Amount in local currency', margins=True, aggfunc="sum", fill_value=0)
     df5 = df5.round(decimals=2).astype(object)
     df5 = df5[df5['Amount in local currency'] != 0]  # pivots ģenerē summāro kolonnu un pēc tās var nomest nulles ar šo koda rindu...
     df5 = df5.reset_index()
-    net_ch_chart_label = f"Net changes of the TR over {overd_days_arg} days old, {hist_date_arg.strftime('%d.%m.%Y.')} - {now_date_arg.strftime('%d.%m.%Y.')}"
+    net_ch_table_label = f"Net changes of the TR over {overd_days_arg} days old, {hist_date_arg.strftime('%d.%m.%Y.')} - {now_date_arg.strftime('%d.%m.%Y.')}"
     # piešķir mainīgo regexam, kas meklē un pārveido listē stringu relativerelative.....
     rel_str = (len(df5['Amount in local currency'])-1)*'relative'
     relative = re.findall('\welative+', rel_str)
@@ -570,35 +570,18 @@ def prep_change_sh_file(bridge_data_tmp_arg, wtf_chart_tmp_arg, ar_data_tmp_arg,
     y_values.append(0)
     text_values = df5['Amount in local currency'].astype(int).astype(str).tolist()
 
-    fig = go.Figure(go.Waterfall(
-    text=text_values,
-    measure=relative,
-    x=x_vNames,
-    y=y_values,
-    connector={"line": {"color": "rgb(63, 63, 63)"}},
-    increasing={"marker": {"color": "rgb(229, 26, 146)"}},
-    decreasing={"marker": {"color": "rgb(88, 171, 39)"}},
-    totals={"marker": {"color": "rgb(141, 145, 148)"}},
-        textposition="outside"))
-
-    fig.update_layout(
-            title=net_ch_chart_label,
-            plot_bgcolor='rgba(0,0,0,0)')  # Šo pieliku pašrocīgi
-    
-    chart = Path(temp_dir, wtf_chart_tmp_arg, engine='kaleido') # kaleido version had to be upgraded, otherwise it hang the script (wo error handling)
-    # fig.show() - this would produce image in a internet browser
-    fig.write_image(file =chart)
-
     with PdExcel(bridge_data_tmp_arg) as writer:        
-        df4.to_excel(writer, sheet_name='Net Changes', startrow=30, index=False, header=True)
+        df4.to_excel(writer, sheet_name='Net Changes', startrow=2, index=False, header=True, engine='xlsxwriter')
         workbook = writer.book
         worksheet = writer.sheets['Net Changes']
-        worksheet.insert_image('A1', chart)
-        chart_xlRange = 'A1:AZ100'
-        chart_xlRange_bkgrd = workbook.add_format({'bg_color': '#FFFFFF'})
-        worksheet.conditional_format(chart_xlRange, {'type': 'cell', 'criteria': '!=',
-                                                        'value': 999999999999,
-                                                        'format': chart_xlRange_bkgrd})
+        header_format = workbook.add_format({
+            'font_size': 20,
+            'text_wrap': False,
+            'font_color': '#494949'})
+        worksheet.write(0, 0, net_ch_table_label, header_format)
+        worksheet.freeze_panes(3, 1)
+
+
         # Auto-adjust columns' width
         for column in df4:
             column_width = max(df4[column].astype(str).map(len).max(), len(column)+3) # +3 added to fit nicer
@@ -681,6 +664,7 @@ def compile_ar_fullrep(ar_fullrep_tmp_path_arg, ar_data_tmp_arg, old_ar_data_tmp
 
     rename_ar_fullrep_tmp(ar_fullrep_tmp_path_arg, new_fullrep_tmp_arg)
 
+@time_it
 def process_the_files(frontline_input_args, now_date_arg, hist_date_arg, overd_days_arg, send_email_arg):
     
     clear_temp(temp_dir)
@@ -725,7 +709,7 @@ def process_the_files(frontline_input_args, now_date_arg, hist_date_arg, overd_d
         prep_stack_sh_file(Path(ar_data_tmp.parent,  fl(ar_data_tmp.name)), Path(bubble_2d_tmp.parent, fl(bubble_2d_tmp.name)),
                            Path(bubble_3d_tmp.parent, fl(bubble_3d_tmp.name)), Path(stack_data_tmp.parent, fl(stack_data_tmp.name)))
         
-        prep_change_sh_file(Path(bridge_data_tmp.parent, fl(bridge_data_tmp.name)), Path(wtf_chart_tmp.parent, fl(wtf_chart_tmp.name)),
+        prep_change_sh_file(Path(bridge_data_tmp.parent, fl(bridge_data_tmp.name)),
                             Path(ar_data_tmp.parent, fl(ar_data_tmp.name)), Path(old_ar_data_tmp.parent, fl(old_ar_data_tmp.name)),
                             now_date_arg, hist_date_arg, overd_days_arg)
 

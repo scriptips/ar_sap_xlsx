@@ -65,7 +65,7 @@ class Frontline:
 def time_it(func):
     """
     This decorator function is to control execution time of the whole Script, and
-    print an output in Miunites and Secnods upon full completion of the Script.
+    print an output in Minutes and Seconds upon full completion of the Script.
     Provides indication of how much time was needed for the SAP queries to be prepared, etc.
     """
     def wrapper(*args, **kwargs):
